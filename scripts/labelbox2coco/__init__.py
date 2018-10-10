@@ -110,7 +110,7 @@ def from_json(labeled_data, coco_output):
 
 
                         curRnd = random.random()
-                        if(curRnd < 0.15):
+                        if(curRnd < 0.0):
                             cocoTest['annotations'].append(annotation)
                         else:
                             coco['annotations'].append(annotation)
