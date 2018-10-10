@@ -3,11 +3,15 @@ import random
 import numpy as np
 from random import shuffle
 import copy
+from sympy import Point, Polygon
 
 testRate = 0.11
 
+dir = r'/home/brans/repos/Labelbox/scripts/'
 
-with open(r'D:\repos\Labelbox\scripts\train.json', encoding='utf-8') as data_file:
+
+
+with open(dir + r'train.json', encoding='utf-8') as data_file:
 
     jsonObject = json.loads(data_file.read())
 
@@ -16,6 +20,10 @@ with open(r'D:\repos\Labelbox\scripts\train.json', encoding='utf-8') as data_fil
 
     imgs = jsonObject['images']
 
+    sizes = {}
+
+    for img in imgs:
+        sizes[img['id']] = (img['width'], img['height'])
 
     shuffle(imgs)
     testSize = int(testRate * len(imgs))
@@ -35,7 +43,35 @@ with open(r'D:\repos\Labelbox\scripts\train.json', encoding='utf-8') as data_fil
     anotsTrain = []
 
     for anot in anots:
+        mask = anot['segmentation'][0]
+        mask = [int(max(x, 0)) for x in mask]
+        anot['segmentation'][0] = mask
+        it = iter(mask)
+        cc = list(zip(it, it))
+        pl = Polygon(*cc)
         imageId = anot['image_id']
+        widthMax, heightMax = sizes[imageId]
+        x = int(pl.bounds[0])
+        y = int(pl.bounds[1])
+
+        width = int(pl.bounds[2] - x)
+        assert(width > 0)
+        difW = widthMax - x - width
+
+        assert(difW > -100)
+        if(difW < 0):
+            width += difW
+
+        height = int(pl.bounds[3] - y)
+        assert (height > 0)
+        difH = heightMax - y - height
+        assert (difH > -100)
+        if(difH < 0):
+            height += difH
+
+        anot['bbox'] =  [x, y, width, height]
+
+
         if(imageId in imgsTestIds):
             anotsTest.append(anot)
         else:
@@ -46,8 +82,8 @@ with open(r'D:\repos\Labelbox\scripts\train.json', encoding='utf-8') as data_fil
 
     #json_raws = data_file.readlines()
 
-    with open(r'D:\repos\Labelbox\scripts\train_2.json', 'w') as fp:
+    with open(dir + r'train_2.json', 'w') as fp:
         json.dump(jsonTrain, fp)
 
-    with open(r'D:\repos\Labelbox\scripts\validation.json', 'w') as fp:
+    with open(dir + r'validation.json', 'w') as fp:
         json.dump(jsonTest, fp)
